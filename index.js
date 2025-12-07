@@ -158,18 +158,50 @@ function safeRestartBot() {
   setTimeout(createBot, config.utils['auto-recconect-delay'] || 3000);
 }
 
+function smoothLook(targetYaw, targetPitch, duration = 600, steps = 8) {
+  if (!bot || !bot.entity || bot.entity.yaw === undefined || bot.entity.pitch === undefined) {
+    return; // bot not ready — avoid crash
+  }
+
+  const startYaw = bot.entity.yaw;
+  const startPitch = bot.entity.pitch;
+
+  // normalize yaw difference
+  let diffYaw = targetYaw - startYaw;
+  while (diffYaw > Math.PI) diffYaw -= 2 * Math.PI;
+  while (diffYaw < -Math.PI) diffYaw += 2 * Math.PI;
+
+  for (let i = 1; i <= steps; i++) {
+    const t = i / steps;
+    const yaw = startYaw + diffYaw * t;
+    const pitch = startPitch + (targetPitch - startPitch) * t;
+
+    setTimeout(() => {
+      if (!bot || !bot.entity || bot.entity.yaw === undefined) return; // still safe
+      bot.look(yaw, pitch, true);
+    }, (duration / steps) * i);
+  }
+}
+
+
 function startRealPlayerSimulation() {
   console.log("[Simulation] Starting real-player movement…");
 
   // Random head movement every 2–5 seconds
   setInterval(() => {
-    const yaw = Math.random() * Math.PI * 2;
-    const pitch = (Math.random() * Math.PI / 3) - (Math.PI / 6);
-    bot.look(yaw, pitch, true);
-  }, 2000 + Math.random() * 3000);
+	  if (!bot || !bot.entity || bot.entity.yaw === undefined) return;
+
+	  const yaw = Math.random() * Math.PI * 2;
+	  const pitch = (Math.random() * Math.PI / 4) - (Math.PI / 8);
+
+	  smoothLook(yaw, pitch, 800 + Math.random() * 700, 10);
+	}, 2000 + Math.random() * 4000);
+
 
   // Random walking behavior
   setInterval(() => {
+	if (!bot || !bot.entity) return;
+	  
     const actions = ["forward", "back", "left", "right", "none"];
     const action = actions[Math.floor(Math.random() * actions.length)];
 
@@ -184,6 +216,8 @@ function startRealPlayerSimulation() {
 
     // Walk for a short time then stop
     setTimeout(() => {
+	  if (!bot || !bot.entity) return;
+	  
       bot.setControlState("forward", false);
       bot.setControlState("back", false);
       bot.setControlState("left", false);
@@ -194,12 +228,16 @@ function startRealPlayerSimulation() {
 
   // Jump occasionally
   setInterval(() => {
+	if (!bot || !bot.entity) return;
+	
     bot.setControlState("jump", true);
     setTimeout(() => bot.setControlState("jump", false), 300);
   }, 7000 + Math.random() * 4000);
 
   // Swing arm randomly
   setInterval(() => {
+	if (!bot || !bot.entity) return;
+	
     bot.swingArm("right");
   }, 5000 + Math.random() * 8000);
 }
