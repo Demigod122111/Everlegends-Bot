@@ -123,6 +123,8 @@ function createBot() {
       bot.setControlState('jump', true);
       if (config.utils['anti-afk'].sneak) bot.setControlState('sneak', true);
     }
+	
+	startRealPlayerSimulation();
   });
 
   bot.on('goal_reached', () => {
@@ -154,6 +156,52 @@ function safeRestartBot() {
     if (bot) bot.quit();
   } catch (e) {}
   setTimeout(createBot, config.utils['auto-recconect-delay'] || 3000);
+}
+
+function startRealPlayerSimulation() {
+  console.log("[Simulation] Starting real-player movement…");
+
+  // Random head movement every 2–5 seconds
+  setInterval(() => {
+    const yaw = Math.random() * Math.PI * 2;
+    const pitch = (Math.random() * Math.PI / 3) - (Math.PI / 6);
+    bot.look(yaw, pitch, true);
+  }, 2000 + Math.random() * 3000);
+
+  // Random walking behavior
+  setInterval(() => {
+    const actions = ["forward", "back", "left", "right", "none"];
+    const action = actions[Math.floor(Math.random() * actions.length)];
+
+    bot.setControlState("forward", false);
+    bot.setControlState("back", false);
+    bot.setControlState("left", false);
+    bot.setControlState("right", false);
+
+    if (action !== "none") {
+      bot.setControlState(action, true);
+    }
+
+    // Walk for a short time then stop
+    setTimeout(() => {
+      bot.setControlState("forward", false);
+      bot.setControlState("back", false);
+      bot.setControlState("left", false);
+      bot.setControlState("right", false);
+    }, 800 + Math.random() * 1200);
+
+  }, 3000 + Math.random() * 4000);
+
+  // Jump occasionally
+  setInterval(() => {
+    bot.setControlState("jump", true);
+    setTimeout(() => bot.setControlState("jump", false), 300);
+  }, 7000 + Math.random() * 4000);
+
+  // Swing arm randomly
+  setInterval(() => {
+    bot.swingArm("right");
+  }, 5000 + Math.random() * 8000);
 }
 
 createBot();
